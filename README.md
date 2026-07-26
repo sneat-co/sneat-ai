@@ -32,7 +32,7 @@ Application Facades
 | Skill | Purpose |
 |---|---|
 | [`sneat`](skills/sneat/SKILL.md) | Operate contacts, lists, calendar and spaces via `sneat-cli`; interpret natural language through the conversational runtime (`sneat convo`). |
-| [`wb-worktrees`](https://github.com/sneat-dev/wb/tree/main/ai/skills/wb-worktrees) | Create Git feature branches through WB in isolated central worktrees while canonical clones remain clean and current. Canonical source lives in `sneat-dev/wb`; this repository only indexes it. |
+| [WB skill set](https://github.com/sneat-dev/wb/tree/main/ai/skills) | Use every public WB command through compact skills, then compose safe code changes and dependency campaigns with minimal duplicate CI. Canonical source lives in `sneat-dev/wb`; this repository only indexes it. |
 
 ## Installation (Claude Code)
 
@@ -44,8 +44,8 @@ Add the Sneat AI marketplace once, then install either plugin:
 /plugin install wb@sneat-ai
 ```
 
-Claude namespaces their skills as `/sneat:sneat` and
-`/wb:wb-worktrees`. Git-backed versions intentionally follow repository
+Claude namespaces the skills as `/sneat:sneat`, `/wb:wb-worktrees`,
+`/wb:wb-deps`, and so on. Git-backed versions intentionally follow repository
 commits, so users receive updates without duplicated version metadata.
 
 For local development, validate the marketplace and its local `sneat` plugin:
@@ -61,14 +61,14 @@ current [`wb`](https://github.com/sneat-dev/wb) CLI on PATH.
 ## Installation (Codex and Agent Skills clients)
 
 Both published skills use the portable Agent Skills `SKILL.md` format. Codex
-and other compatible clients can install the canonical skill directory
-directly:
+and other compatible clients can install the canonical source directly:
 
 - Sneat: `sneat-co/sneat-ai`, path `skills/sneat`
-- WB worktrees: `sneat-dev/wb`, path `ai/skills/wb-worktrees`
+- WB: `sneat-dev/wb`, Codex plugin manifest at `.codex-plugin/plugin.json`,
+  canonical skills at `ai/skills`
 
 Claude-specific marketplace and plugin manifests are distribution metadata;
-they do not contain a second copy of either skill.
+they do not contain a second copy of any skill.
 
 ## Design notes
 

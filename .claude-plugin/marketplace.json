@@ -16,7 +16,7 @@
         "source": "github",
         "repo": "sneat-dev/wb"
       },
-      "description": "Create safe Git branches in isolated WB worktrees"
+      "description": "Operate repository fleets through compact WB command and workflow skills"
     }
   ]
 }
