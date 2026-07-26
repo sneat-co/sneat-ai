@@ -1,0 +1,22 @@
+{
+  "name": "sneat-ai",
+  "description": "Agent skills published by Sneat and Sneat Developer Platform projects",
+  "owner": {
+    "name": "Sneat.co"
+  },
+  "plugins": [
+    {
+      "name": "sneat",
+      "source": "./",
+      "description": "Operate Sneat.app through the sneat CLI"
+    },
+    {
+      "name": "wb",
+      "source": {
+        "source": "github",
+        "repo": "sneat-dev/wb"
+      },
+      "description": "Create safe Git branches in isolated WB worktrees"
+    }
+  ]
+}
