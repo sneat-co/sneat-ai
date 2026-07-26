@@ -1,0 +1,12 @@
+{
+  "name": "sneat",
+  "description": "Operate Sneat.app through the sneat CLI",
+  "author": {
+    "name": "Sneat.co"
+  },
+  "repository": "https://github.com/sneat-co/sneat-ai",
+  "license": "MIT",
+  "skills": [
+    "./skills/sneat"
+  ]
+}
