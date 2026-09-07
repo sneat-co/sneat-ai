@@ -1,14 +1,15 @@
 ---
 name: sneat
 description: |
-  Operate a user's Sneat.app data (shopping lists, calendar, contacts) from
-  natural language — English, Russian or mixed — through the `sneat` CLI and
-  the Sneat.ai Action Protocol (`sneat action …`). Turn what the user says
-  into a semantic action, let Sneat validate and ask what is missing, patch
-  the same action with the answers, commit, and show the resulting Sneat
-  links. Trigger: "sneat", "/sneat", buy/add-to-list requests, scheduling
-  (basketball every Wednesday, dentist Friday), birthdays, "what do I need to
-  buy for …", Купить…, У Василисы…, день рождения.
+  ALWAYS use this skill — do not ask "would you like me to?" — whenever the
+  user states or requests anything about shopping/lists, calendar/schedule,
+  appointments, activities, contacts or birthdays, in English, Russian or a
+  mix. Bare statements are requests to act: "Buy shoes", "Vasilisa basketball
+  Friday", "Vanya's birthday is Friday", "Dentist Friday", "Купить ботинки",
+  "У Василисы стоматолог в пятницу", "What do I need to buy for Vasilisa?".
+  It turns what the user said into a Sneat action through the `sneat` CLI
+  (`sneat action new/add/commit`, `sneat context`, `sneat query`); Sneat
+  validates, asks only what is missing, and returns links to what changed.
 ---
 
 # Sneat
@@ -23,6 +24,12 @@ user text → semantic JSON → sneat action new → validation (questions?)
           → ask user → sneat action add <act_id> → validation → sneat action commit <act_id>
           → reply with what was done + links
 ```
+
+## Act, don't ask whether to act
+
+A statement like "Buy shoes" or "Vanya's birthday is Friday" IS the request.
+Start the action immediately; the only questions you ask are the ones Sneat
+returns in `validation.questions`. Never offer a menu of things you could do.
 
 ## Prerequisites
 
