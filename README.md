@@ -70,6 +70,29 @@ and other compatible clients can install the canonical source directly:
 Claude-specific marketplace and plugin manifests are distribution metadata;
 they do not contain a second copy of any skill.
 
+## Repository scope rule
+
+This repository is **skills only**. It MUST NOT contain CLI, backend or
+frontend code. What lives here:
+
+- `skills/<name>/SKILL.md` and their reference files (prompts, examples,
+  schemas rendered for the model);
+- plugin/marketplace manifests (`.claude-plugin/`) — distribution metadata;
+- small agent-harness scripts strictly needed to install or validate the
+  skills (e.g. a `claude plugin validate` helper).
+
+Everything else has a home elsewhere:
+
+| Concern | Repository |
+|---|---|
+| Sneat.ai backend — Action Protocol (`act_*`), semantic schema, validation, contact resolution | `sneat-co/sneat-ai-backend` (served on `api.sneat.cloud` as `/v0/sneatai/*`) |
+| `sneat` CLI (`sneat action …`, `sneat context`, …) | `sneat-co/sneat-cli` |
+| Web/mobile UI, the sneat.ai website | `sneat-co/sneat-apps`, `sneat-co/sneat-ai-website` |
+| Composition root / wiring | `sneat-co/sneat-go` |
+
+A skill that needs a capability the CLI does not have reports the gap; it never
+re-implements it here.
+
 ## Design notes
 
 - Skills follow the same layout as [SpecStudio skills](https://github.com/specscore/specstudio-skills):
