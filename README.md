@@ -31,7 +31,7 @@ Application Facades
 
 | Skill | Purpose |
 |---|---|
-| [`sneat`](skills/sneat/SKILL.md) | Operate contacts, lists, calendar and spaces via `sneat-cli`; interpret natural language through the conversational runtime (`sneat convo`). |
+| [`sneat`](skills/sneat/SKILL.md) | Turn natural language (EN/RU/mixed) into Sneat actions through the Action Protocol (`sneat action new/add/commit`, `sneat context`, `sneat query`): shopping lists, schedules, birthdays — validated and committed by the Sneat backend. |
 | [WB skill set](https://github.com/sneat-dev/wb/tree/main/ai/skills) | Use every public WB command through compact skills, then compose safe code changes and dependency campaigns with minimal duplicate CI. Canonical source lives in `sneat-dev/wb`; this repository only indexes it. |
 
 ## Installation (Claude Code)
