@@ -1,81 +1,159 @@
 ---
 name: sneat
 description: |
-  Operate a user's Sneat.app data (contacts, lists, calendar, spaces) from an
-  AI agent by invoking the `sneat` CLI. Covers real backend operations
-  (authenticated contact/space commands) and the conversational runtime's
-  typed actions (`sneat convo ...`) for interpreting natural-language
-  requests, inspecting the Typed Action Specification, and replaying
-  conversations in a local sandbox. Trigger: "sneat", "/sneat", requests to
-  manage the user's Sneat contacts, shopping lists, calendar or spaces.
+  Operate a user's Sneat.app data (shopping lists, calendar, contacts) from
+  natural language — English, Russian or mixed — through the `sneat` CLI and
+  the Sneat.ai Action Protocol (`sneat action …`). Turn what the user says
+  into a semantic action, let Sneat validate and ask what is missing, patch
+  the same action with the answers, commit, and show the resulting Sneat
+  links. Trigger: "sneat", "/sneat", buy/add-to-list requests, scheduling
+  (basketball every Wednesday, dentist Friday), birthdays, "what do I need to
+  buy for …", Купить…, У Василисы…, день рождения.
 ---
 
 # Sneat
 
-Expose Sneat.app capabilities to AI agents through the `sneat` CLI. This
-skill is a thin wrapper: all business logic lives in Sneat's application
-facades behind the CLI — never re-implement it here.
+You understand language. **Sneat understands Sneat.** Never decide yourself
+who "Vasilisa" is, which date "Friday" is, or whether an action is complete —
+send what you understood, read the validator's answer, ask exactly the
+questions it returns, patch, commit.
 
 ```text
-AI Agent → this skill → sneat-cli → Typed Sneat Actions → Application Facades → DALgo
+user text → semantic JSON → sneat action new → validation (questions?)
+          → ask user → sneat action add <act_id> → validation → sneat action commit <act_id>
+          → reply with what was done + links
 ```
 
 ## Prerequisites
 
-The `sneat` CLI must be on PATH (build from `github.com/sneat-co/sneat-cli`
-with `go build ./cmd/sneat`). For real-backend commands the user must be
-signed in; check with `sneat whoami`. If not signed in, ask the user to run
-`sneat auth login` themselves (interactive browser flow) — do not attempt to
-capture their credentials.
+`sneat` CLI on PATH and signed in (`sneat whoami`; if not, ask the user to run
+`sneat auth login` themselves). Default space is the family space; pass
+`--space <id>` only when the user names another space.
 
-## Real backend operations (authenticated)
+## Step 0 — read early (cheap)
 
-These operate on the user's live data:
+Run `sneat context` once per conversation (or when unsure). It returns the
+Space's contacts (ids, names, gender, dob), lists, recurring happenings,
+today's date and weekday, timezone and preferred language. Use it to
+decompose confidently; do **not** paste it back to the user.
 
-| Task | Command |
-|---|---|
-| Who am I / auth check | `sneat whoami` |
-| List spaces | `sneat space list --json` |
-| Select default space | `sneat space use <family\|private\|id>` |
-| List contacts | `sneat contact list --json` |
-| Get contact | `sneat contact get --id <id> --json` |
-| Add contact | `sneat contact add --name "Jane Doe" --email jane@example.com --phone +353871234567` |
-| Delete contact | `sneat contact delete --id <id>` |
+## Step 1 — decompose the utterance into a semantic action
 
-Always pass `--json` when you need to parse output. Before deleting
-anything, confirm with the user and echo exactly what will be deleted.
+Detect the message language (`en`, `ru`, or `mixed`). Keep the user's original
+words in every `text` field with its `language`; add `localized.en` (or
+`localized.ru`) when you can translate. IDs, dates, weekdays and recurrence
+are language-neutral.
 
-## Conversational runtime (typed actions)
+Three kinds — pick one:
 
-The conversational runtime translates natural language into validated typed
-actions executed through Sneat facades. The CLI runs it against an
-**in-process sandbox** (in-memory datastore) — ideal for interpreting user
-intent, testing prompts, and inspecting the action contract:
+| kind | when | shape |
+|---|---|---|
+| `buy` | things to buy / add to a shopping list | `operations[]` each with `objects[]`, optional `contacts[]`, `deadline`, `listID` |
+| `schedule` | activity, appointment, class, event | `schedule{activity, kind?, contacts[], provider?, repeats?, slots[]}` |
+| `birthday` | someone's birthday | `birthday{contact, date, year?}` |
 
-| Task | Command |
-|---|---|
-| Discover available typed actions | `sneat convo actions --json` |
-| Actions of one extension | `sneat convo actions --scope listus --json` |
-| Interpret a message into actions | `sneat convo say "buy milk and bread" --json` |
-| Multi-turn conversation | `sneat convo say "add contact Jane Doe" "list my contacts" --json` |
-| Auto-approve confirmations | `sneat convo say "delete contact Jane" --yes --json` |
-| Replay a scripted conversation | `sneat convo replay conversation.txt --json` |
+Rules that matter:
 
-Replay file format: one message per line; a line that is exactly `yes` or
-`no` approves/declines the pending confirmation; `#` starts a comment.
+- **Plurality and grouping.** "shoes and socks for Alice and Vasilisa" is ONE
+  operation with two objects and two contacts. "shoes for Alice and a
+  basketball for Vasilisa" is TWO operations. Never flatten who-gets-what.
+- **Contacts are mentions.** Send `{"mention":"Василисе"}` exactly as
+  written (any case, declension, nickname, "Mum", "папа", "me"). Sneat
+  resolves them and returns candidates when ambiguous.
+- **Dates are structure.** `{"weekday":"fr"}`, `{"date":"2026-09-30"}`,
+  `{"relative":"end_of_month"}`, or anchors
+  `{"before":{"birthdayOf":{"mention":"Vanya"}}}` /
+  `{"before":{"nextOccurrenceOf":{"activity":{"text":"basketball"},"contact":{"mention":"Vasilisa"}}}}`.
+  Only if you truly cannot structure it, send `{"text":"до пятницы"}`.
+- **Times as HH:MM** (24h). "6pm" → `"18:00"`; "3 часа дня" → `"15:00"`.
+  If the user gives an ambiguous bare hour ("at 6"), send `"6"` and let
+  Sneat assume/warn.
+- **Recurrence is never guessed.** "Vasilisa basketball Friday" → slot
+  `{"weekday":"fr"}` with no `repeats` and no `time`; Sneat will ask. Say
+  `repeats:"weekly"` only when the user said every/каждую.
+- Several weekdays with different times ("Wed 3pm, Fri 6pm, Sat 10am") are
+  **one** schedule with three slots.
+- Do not invent optional fields (duration, listID, kind); Sneat defaults them.
 
-Scopes match Sneat extensions: `contactus` (contacts), `calendarius`
-(calendar), `listus` (lists), `assetus` (assets). An extension-specific
-context should pass only its own scope — e.g. in a lists-only context,
-`sneat convo say "milk" --scope listus` interprets a bare item as
-"add to groceries".
+Get the full field list, importance levels and 15 worked EN/RU examples with
+`sneat action schema` (or see [reference/examples.md](reference/examples.md)).
 
-## Rules
+## Step 2 — submit and read the validation
 
-- Destructive operations (delete contact/event, remove list items) require
-  explicit user confirmation before you run them (or before passing `--yes`).
-- Do not duplicate business logic: if a capability is missing from the CLI,
-  report it as a gap instead of simulating it.
-- Sandbox vs real: `sneat convo` writes to an in-memory sandbox only; the
-  authenticated `sneat contact ...` commands write to the user's real data.
-  Never present sandbox results as real changes.
+```bash
+sneat action new --utterance "Vasilisa basketball Friday" --language en \
+  --json '{"kind":"schedule","schedule":{"activity":{"text":"basketball","language":"en"},"contacts":[{"mention":"Vasilisa"}],"slots":[{"weekday":"fr"}]}}'
+```
+
+The reply carries `actionID` (`act_…`) and `validation`:
+
+- `validation.canCommit` — **only Sneat decides this**;
+- `validation.questions[]` — already prioritised and combined (e.g. "What
+  time is basketball on Friday, and is it every week or just this once?").
+  Ask them verbatim-in-spirit, in the reply language, at most two at a time;
+  `blocking:false` questions are optional — mention them once, never insist;
+- `validation.issues[]` — `warn` items (e.g. "I read 6 as 18:00") must be
+  mentioned to the user; `info` items may be;
+- `validation.semantic` — the resolved candidate (contact IDs, absolute
+  dates). Keep working with the same `actionID`.
+
+## Step 3 — patch the SAME action with what the user adds or corrects
+
+Send only the delta. Scalars replace, contacts/objects/slots merge by key:
+
+```bash
+sneat action add act_7f3k9m2x --utterance "Every Friday at six" \
+  --json '{"schedule":{"slots":[{"weekday":"fr","time":"6","repeats":"weekly"}]}}'
+```
+
+Ambiguous contact → the question comes with `options[{id,label}]`; patch with
+the chosen `contactID`: `{"schedule":{"contacts":[{"mention":"Alice","contactID":"c123"}]}}`.
+"Add it anyway" after a duplicate warning → `{"overrides":["duplicate_happening"]}`.
+
+## Step 4 — commit when allowed
+
+```bash
+sneat action commit act_7f3k9m2x
+```
+
+Commit only when `canCommit` is true (the CLI exits with code 2 and prints
+the pending question otherwise). Committing twice is safe (idempotent).
+`result.entities[]` and `result.links[]` tell you what was created and where.
+
+**Corrections after commit** use the same action: "Actually Saturday is at
+11" → `sneat action add act_… --json '{"schedule":{"slots":[{"weekday":"sa","time":"11:00"}]}}'`
+then `sneat action commit act_…` amends the existing happening (no
+duplicate). "This Saturday at 12 only" → `{"schedule":{"exceptions":[{"weekday":"sa","time":"12:00"}]}}`.
+Cancelling one occurrence is not supported yet; say so and offer the calendar link.
+
+## Step 5 — reply
+
+Reply in the language of the user's message (else their preferred language,
+else English). State what was done in one or two sentences, show the original
+wording (e.g. "молоко (milk)"), and always include the returned links so the
+user can check or edit in Sneat. Never claim success without a commit
+result.
+
+## Queries
+
+"What do I need to buy for Vasilisa?" / "Что нужно купить Василисе?" /
+"What do I need to do before the end of the month?":
+
+```bash
+sneat query --json '{"contacts":[{"mention":"Василисе"}],"before":{"relative":"end_of_month"}}'
+```
+
+Answer from `items[]` (with `deadline`, `link`) and `happenings[]` (with
+`next`, `link`).
+
+## Confirmation policy
+
+Creating list items, happenings and birthdays is safe and reversible: commit
+without asking for confirmation once validation passes. Confirm only when
+Sneat asks (ambiguity, duplicate) or the user seems unsure. Never call the
+older `sneat convo` sandbox for real data.
+
+## When something is missing from the CLI
+
+Report the gap plainly; do not simulate the operation or write to Sneat by
+other means.
