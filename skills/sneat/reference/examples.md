@@ -105,6 +105,28 @@ Relative: `today | tomorrow | end_of_week | end_of_month | end_of_year`.
 {"kind":"birthday","birthday":{"contact":{"mention":"Vanya"},"date":{"date":"2026-09-11"},"year":2015}}
 ```
 
+## clear
+
+Destructive and never inferred. Confirm with the user before committing.
+
+```json
+// Clear the groceries list.  (no listID: Sneat defaults to the shopping list)
+{"kind":"clear","operations":[{}]}
+
+// Очисти список продуктов.
+{"kind":"clear","operations":[{}]}
+
+// Empty the Toys list.  (listID from `sneat context`)
+{"kind":"clear","operations":[{"listID":"to-do!toys"}]}
+```
+
+Not a `clear` — these remove one item, which this kind cannot express, and
+Sneat refuses a `clear` carrying `objects`:
+
+```text
+"take the milk off the list"      "убери молоко из списка"
+```
+
 ## Answering ambiguity
 
 Validation returned:

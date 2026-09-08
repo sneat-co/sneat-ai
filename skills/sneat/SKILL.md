@@ -51,13 +51,14 @@ words in every `text` field with its `language`; add `localized.en` (or
 `localized.ru`) when you can translate. IDs, dates, weekdays and recurrence
 are language-neutral.
 
-Three kinds — pick one:
+Four kinds — pick one:
 
 | kind | when | shape |
 |---|---|---|
 | `buy` | things to buy / add to a shopping list | `operations[]` each with `objects[]`, optional `contacts[]`, `deadline`, `listID` |
 | `schedule` | activity, appointment, class, event | `schedule{activity, kind?, contacts[], provider?, repeats?, slots[]}` |
 | `birthday` | someone's birthday | `birthday{contact, date, year?}` |
+| `clear` | empty a whole list | `operations[]` with exactly one entry, `listID` only |
 
 Rules that matter:
 
@@ -80,6 +81,13 @@ Rules that matter:
   `repeats:"weekly"` only when the user said every/каждую.
 - Several weekdays with different times ("Wed 3pm, Fri 6pm, Sat 10am") are
   **one** schedule with three slots.
+- **`clear` empties a list and is never inferred.** Use it only for an
+  explicit instruction to empty one ("clear the groceries list", "очисти
+  список продуктов"). Send one operation with `listID` when the user named a
+  list, or no `listID` at all for the default shopping list. It cannot remove
+  a single item: "take the milk off the list" is not a `clear`, and Sneat
+  refuses one carrying `objects`. Never use it to "start fresh" on your own
+  initiative.
 - Do not invent optional fields (duration, listID, kind); Sneat defaults them.
 
 Get the full field list, importance levels and 15 worked EN/RU examples with
@@ -159,6 +167,11 @@ Creating list items, happenings and birthdays is safe and reversible: commit
 without asking for confirmation once validation passes. Confirm only when
 Sneat asks (ambiguity, duplicate) or the user seems unsure. Never call the
 older `sneat convo` sandbox for real data.
+
+**`clear` is the exception.** It deletes every item in a list and there is no
+undo. Say which list and how many items will go, and commit only once the
+user has confirmed — even when validation passes. The commit result names
+every deleted item, so quote them back if the user asks what was lost.
 
 ## When something is missing from the CLI
 
